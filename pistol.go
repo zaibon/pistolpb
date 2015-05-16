@@ -15,24 +15,15 @@ import (
 
 type Pistol struct {
 	notifile io.Reader
-	Client   *pushbullet.Client
+	client   *pushbullet.Client
 	Devices  []*pushbullet.Device
 }
 
-func newPistol(r io.Reader, apiKey string) (*Pistol, error) {
+func newPistol(r io.Reader, cfg *config) (*Pistol, error) {
 	p := &Pistol{
 		notifile: r,
-		Client:   pushbullet.New(apiKey),
-	}
-
-	devices, err := p.Client.Devices()
-	if err != nil {
-		return nil, err
-	}
-	for _, d := range devices {
-		if d.Active {
-			p.Devices = append(p.Devices, d)
-		}
+		client:   pushbullet.New(cfg.Apikey),
+		Devices:  cfg.Devices,
 	}
 
 	return p, nil
@@ -47,8 +38,9 @@ func (p *Pistol) Watch() {
 
 func (p *Pistol) broadcast(notif notif) {
 	for _, d := range p.Devices {
+		fmt.Println(d.Iden)
 		msg := fmt.Sprintf("Channe:%s\nFrom : %s\n%s", notif.Channel, notif.User, notif.Message)
-		p.Client.PushNote(d.Iden, fmt.Sprintf("IRC: %s", notif.Channel), msg)
+		p.client.PushNote(d.Iden, fmt.Sprintf("IRC: %s", notif.Channel), msg)
 	}
 }
 
@@ -108,4 +100,9 @@ func Parse(s string) (notif, error) {
 		n.Message = s[i+1:]
 	}
 	return n, nil
+}
+
+type config struct {
+	Apikey  string
+	Devices []*pushbullet.Device
 }
