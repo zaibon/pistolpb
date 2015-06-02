@@ -14,16 +14,18 @@ import (
 )
 
 type Pistol struct {
-	notifile io.Reader
-	client   *pushbullet.Client
-	Devices  []*pushbullet.Device
+	notifile    io.Reader
+	client      *pushbullet.Client
+	Devices     []*pushbullet.Device
+	lastQueries map[string]time.Time
 }
 
 func newPistol(r io.Reader, cfg *config) (*Pistol, error) {
 	p := &Pistol{
-		notifile: r,
-		client:   pushbullet.New(cfg.Apikey),
-		Devices:  cfg.Devices,
+		notifile:    r,
+		client:      pushbullet.New(cfg.Apikey),
+		Devices:     cfg.Devices,
+		lastQueries: map[string]time.Time{},
 	}
 
 	return p, nil
@@ -31,9 +33,29 @@ func newPistol(r io.Reader, cfg *config) (*Pistol, error) {
 
 func (p *Pistol) Watch() {
 	for notif := range readnotif(p.notifile) {
+
+		// don't spam notification when queries come from same person
+		if p.sameLessThan(notif, time.Minute*15) {
+			continue
+		}
+
 		p.broadcast(notif)
 		log.Printf("send %+v\n", notif)
 	}
+}
+
+// sameLessThan tests if the notif is a query that come from user who sends a previous
+// message less than duration d ago
+func (p *Pistol) sameLessThan(notif notif, d time.Duration) bool {
+	if notif.Channel == queryType {
+		last, present := p.lastQueries[notif.User]
+		now := time.Now()
+		p.lastQueries[notif.User] = now
+		if present && now.Sub(last) < d {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *Pistol) broadcast(notif notif) {
@@ -79,6 +101,8 @@ type notif struct {
 var regexMsg = regexp.MustCompile("#(.+) <(.+)> (.+)")
 var regexQuery = regexp.MustCompile("(.+) (.+)")
 
+const queryType = "Query"
+
 func Parse(s string) (notif, error) {
 	n := notif{}
 	if s == "" {
@@ -94,7 +118,7 @@ func Parse(s string) (notif, error) {
 		n.User = s[:i]
 		n.Message = s[i+2:]
 	} else {
-		n.Channel = "Query"
+		n.Channel = queryType
 		i := strings.Index(s, " ")
 		n.User = s[:i]
 		n.Message = s[i+1:]
