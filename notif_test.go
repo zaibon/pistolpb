@@ -10,7 +10,7 @@ import (
 func TestParse(t *testing.T) {
 	tt := []struct {
 		input  string
-		expext notif
+		expect notif
 	}{
 		{
 			"#channel <user> message",

@@ -60,8 +60,8 @@ func (p *Pistol) sameLessThan(notif notif, d time.Duration) bool {
 
 func (p *Pistol) broadcast(notif notif) {
 	for _, d := range p.Devices {
-		fmt.Println(d.Iden)
-		msg := fmt.Sprintf("Channe:%s\nFrom : %s\n%s", notif.Channel, notif.User, notif.Message)
+		fmt.Println(d.Nickname)
+		msg := fmt.Sprintf("Channel:%s\nFrom : %s\n%s", notif.Channel, notif.User, notif.Message)
 		p.client.PushNote(d.Iden, fmt.Sprintf("IRC: %s", notif.Channel), msg)
 	}
 }
@@ -81,7 +81,7 @@ func readnotif(r io.Reader) chan notif {
 			}
 			notif, err = Parse(l)
 			if err != nil {
-				// log.Println(err)
+				log.Printf("error parsing line (%v) : %v\n", l, err)
 				continue
 			}
 			c <- notif
