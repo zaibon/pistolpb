@@ -18,4 +18,4 @@ choose on which device send notification (ex: 0,1,3) :
 
 finally start shooting
 ```
-pistolpb -f /path/to/fnotify/file
+pistolpb -f /path/to/fnotify/file  
